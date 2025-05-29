@@ -1,5 +1,6 @@
 package io.github.mcengine.addon.artificialintelligence.chatbot;
 
+import io.github.mcengine.api.artificialintelligence.MCEngineArtificialIntelligenceApi;
 import io.github.mcengine.api.artificialintelligence.addon.*;
 import io.github.mcengine.addon.artificialintelligence.chatbot.command.ChatBotCommand;
 import io.github.mcengine.addon.artificialintelligence.chatbot.listener.ChatBotListener;
@@ -84,6 +85,8 @@ public class ChatBot implements IMCEngineArtificialIntelligenceAddOn {
 
             // Register the command dynamically
             commandMap.register(plugin.getName().toLowerCase(), chatbotCommand);
+
+            MCEngineArtificialIntelligenceApi.getApi().checkUpdate("github","MCEngine-AddOn","artificialintelligence-chat-bot",plugin.getConfig().getString("github.token", "null"));
 
             logger.info("Enabled successfully.");
         } catch (Exception e) {

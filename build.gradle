@@ -16,46 +16,38 @@ def mcengineApiVersion = findProperty('mcengine-api.version') ?: 'undefined'
 def mcengineArtificialIntelligenceApiVersion = findProperty('mcengine-artificialintelligence-api.version') ?: 'undefined'
 def spigotmcApiVersion = findProperty('spigotmc-api.version') ?: 'undefined'
 
-allprojects {
-    group = 'io.github.mcengine'
+repositories {
+    mavenCentral()
+    mavenLocal()
 
-    apply plugin: 'java'
-    apply plugin: 'com.github.johnrengelman.shadow'
-
-    repositories {
-        mavenCentral()
-        mavenLocal()
-
-        maven {
-            url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
-            content {
-                includeGroup 'org.bukkit'
-                includeGroup 'org.spigotmc'
-            }
+    maven {
+        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
+        content {
+            includeGroup 'org.bukkit'
+            includeGroup 'org.spigotmc'
         }
+    }
 
-        maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
-        maven { url 'https://oss.sonatype.org/content/repositories/central' }
+    maven { url 'https://oss.sonatype.org/content/repositories/snapshots' }
+    maven { url 'https://oss.sonatype.org/content/repositories/central' }
 
-        maven {
-            url = uri('https://maven.pkg.github.com/MCEngine/mcengine')
-            credentials {
-                username = project.git_user_name ?: 'null'
-                password = project.git_user_token ?: 'null'
-            }
+    maven {
+        url = uri('https://maven.pkg.github.com/MCEngine/mcengine')
+        credentials {
+            username = project.git_user_name ?: 'null'
+            password = project.git_user_token ?: 'null'
         }
-        maven {
-            url = uri('https://maven.pkg.github.com/MCEngine/artificialintelligence')
-            credentials {
-                username = project.git_user_name ?: 'null'
-                password = project.git_user_token ?: 'null'
-            }
+    }
+    maven {
+        url = uri('https://maven.pkg.github.com/MCEngine/artificialintelligence')
+        credentials {
+            username = project.git_user_name ?: 'null'
+            password = project.git_user_token ?: 'null'
         }
     }
 }
 
 dependencies {
-    implementation project(path: ":mcengine-chat-bot-api", configuration: 'shadow')
     compileOnly "io.github.mcengine:mcengine-api:$mcengineApiVersion"
     compileOnly "io.github.mcengine:mcengine-artificialintelligence-api:$mcengineArtificialIntelligenceApiVersion"
     compileOnly "org.spigotmc:spigot-api:$spigotmcApiVersion"
