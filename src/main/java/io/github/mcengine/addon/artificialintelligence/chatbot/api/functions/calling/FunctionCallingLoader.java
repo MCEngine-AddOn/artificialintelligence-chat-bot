@@ -1,34 +1,40 @@
 package io.github.mcengine.addon.artificialintelligence.chatbot.api.functions.calling;
 
 import io.github.mcengine.addon.artificialintelligence.chatbot.api.functions.calling.json.FunctionCallingJson;
+import io.github.mcengine.addon.artificialintelligence.chatbot.api.functions.calling.util.FunctionCallingLoaderUtilTime;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
 
-import static io.github.mcengine.addon.artificialintelligence.chatbot.api.functions.calling.util.FunctionCallingLoaderUtilTime.*;
-
 public class FunctionCallingLoader {
 
     private final List<FunctionRule> mergedRules = new ArrayList<>();
+    private final List<LowercaseRule> lowercaseRules = new ArrayList<>();
 
     public FunctionCallingLoader(Plugin plugin) {
         IFunctionCallingLoader loader = new FunctionCallingJson(
                 new java.io.File(plugin.getDataFolder(), "addons/MCEngineChatBot/data/")
         );
         mergedRules.addAll(loader.loadFunctionRules());
+
+        for (FunctionRule rule : mergedRules) {
+            List<String> lowerMatch = new ArrayList<>();
+            for (String pattern : rule.match) {
+                lowerMatch.add(pattern.toLowerCase());
+            }
+            lowercaseRules.add(new LowercaseRule(rule, lowerMatch));
+        }
     }
 
     public List<String> match(Player player, String input) {
-        List<String> results = new ArrayList<>();
         String lowerInput = input.toLowerCase().trim();
+        List<String> results = new ArrayList<>();
 
-        for (FunctionRule rule : mergedRules) {
-            for (String pattern : rule.match) {
-                String lowerPattern = pattern.toLowerCase();
-                if (lowerInput.contains(lowerPattern) || lowerPattern.contains(lowerInput)) {
-                    String resolved = applyPlaceholders(rule.response, player);
-                    results.add(resolved);
+        for (LowercaseRule rule : lowercaseRules) {
+            for (String pattern : rule.lowerMatch) {
+                if (lowerInput.contains(pattern) || pattern.contains(lowerInput)) {
+                    results.add(applyPlaceholders(rule.original.response, player));
                     break;
                 }
             }
@@ -38,41 +44,59 @@ public class FunctionCallingLoader {
     }
 
     private String applyPlaceholders(String response, Player player) {
-        response = response
-                .replace("{player_name}", player.getName())
-                .replace("{player_uuid}", player.getUniqueId().toString())
-                .replace("{time_server}", getFormattedTime(TimeZone.getDefault()))
-                .replace("{time_utc}", getFormattedTime(TimeZone.getTimeZone("UTC")))
-                .replace("{time_gmt}", getFormattedTime(TimeZone.getTimeZone("GMT")));
+        Map<String, String> placeholders = new HashMap<>();
 
-        Map<String, String> namedZones = Map.ofEntries(
-                Map.entry("{time_new_york}", getFormattedTime("America/New_York")),
-                Map.entry("{time_london}", getFormattedTime("Europe/London")),
-                Map.entry("{time_tokyo}", getFormattedTime("Asia/Tokyo")),
-                Map.entry("{time_bangkok}", getFormattedTime("Asia/Bangkok")),
-                Map.entry("{time_sydney}", getFormattedTime("Australia/Sydney")),
-                Map.entry("{time_paris}", getFormattedTime("Europe/Paris")),
-                Map.entry("{time_berlin}", getFormattedTime("Europe/Berlin")),
-                Map.entry("{time_singapore}", getFormattedTime("Asia/Singapore")),
-                Map.entry("{time_los_angeles}", getFormattedTime("America/Los_Angeles")),
-                Map.entry("{time_toronto}", getFormattedTime("America/Toronto"))
-        );
+        // Static placeholders
+        placeholders.put("{player_name}", player.getName());
+        placeholders.put("{player_uuid}", player.getUniqueId().toString());
+        placeholders.put("{time_server}", FunctionCallingLoaderUtilTime.getFormattedTime(TimeZone.getDefault()));
+        placeholders.put("{time_utc}", FunctionCallingLoaderUtilTime.getFormattedTime(TimeZone.getTimeZone("UTC")));
+        placeholders.put("{time_gmt}", FunctionCallingLoaderUtilTime.getFormattedTime(TimeZone.getTimeZone("GMT")));
 
-        for (Map.Entry<String, String> entry : namedZones.entrySet()) {
-            response = response.replace(entry.getKey(), entry.getValue());
+        // Named zones
+        String[][] zones = {
+                {"{time_new_york}", "America/New_York"},
+                {"{time_london}", "Europe/London"},
+                {"{time_tokyo}", "Asia/Tokyo"},
+                {"{time_bangkok}", "Asia/Bangkok"},
+                {"{time_sydney}", "Australia/Sydney"},
+                {"{time_paris}", "Europe/Paris"},
+                {"{time_berlin}", "Europe/Berlin"},
+                {"{time_singapore}", "Asia/Singapore"},
+                {"{time_los_angeles}", "America/Los_Angeles"},
+                {"{time_toronto}", "America/Toronto"},
+        };
+
+        for (String[] zone : zones) {
+            placeholders.put(zone[0], FunctionCallingLoaderUtilTime.getFormattedTime(zone[1]));
         }
 
+        // Dynamic GMT/UTC zones
         for (int hour = -12; hour <= 14; hour++) {
             for (int min : new int[]{0, 30, 45}) {
-                String utcLabel = getZoneLabel("utc", hour, min);
-                String gmtLabel = getZoneLabel("gmt", hour, min);
                 TimeZone tz = TimeZone.getTimeZone(String.format("GMT%+03d:%02d", hour, min));
-                String time = getFormattedTime(tz);
-                response = response.replace(utcLabel, time);
-                response = response.replace(gmtLabel, time);
+                String time = FunctionCallingLoaderUtilTime.getFormattedTime(tz);
+
+                placeholders.put(FunctionCallingLoaderUtilTime.getZoneLabel("utc", hour, min), time);
+                placeholders.put(FunctionCallingLoaderUtilTime.getZoneLabel("gmt", hour, min), time);
             }
         }
 
+        // Replace all placeholders
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            response = response.replace(entry.getKey(), entry.getValue());
+        }
+
         return response;
+    }
+
+    private static class LowercaseRule {
+        final FunctionRule original;
+        final List<String> lowerMatch;
+
+        LowercaseRule(FunctionRule original, List<String> lowerMatch) {
+            this.original = original;
+            this.lowerMatch = lowerMatch;
+        }
     }
 }
