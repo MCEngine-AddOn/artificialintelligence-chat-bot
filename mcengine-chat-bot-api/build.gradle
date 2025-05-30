@@ -1,6 +1,5 @@
 plugins {
     id 'java-library'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 def spigotmcApiVersion = findProperty('spigotmc-api.version') ?: 'undefined'
@@ -13,12 +12,6 @@ dependencies {
 // Create a proper fat JAR
 shadowJar {
     archiveBaseName.set("${jarName}-API")
-    archiveClassifier.set(null)
-    from sourceSets.main.output
-}
-
-artifacts {
-    add('shadow', shadowJar)
 }
 
 build.dependsOn(shadowJar)

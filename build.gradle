@@ -54,8 +54,17 @@ allprojects {
     }
 }
 
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'com.github.johnrengelman.shadow'
+
+    shadowJar {
+        archiveClassifier = null
+    }
+}
+
 dependencies {
-    implementation project(path: ":mcengine-chat-bot-api", configuration: 'shadow')
+    implementation project(path: ':mcengine-chat-bot-api', configuration: 'shadow')
     compileOnly "io.github.mcengine:mcengine-api:$mcengineApiVersion"
     compileOnly "io.github.mcengine:mcengine-artificialintelligence-api:$mcengineArtificialIntelligenceApiVersion"
     compileOnly "org.spigotmc:spigot-api:$spigotmcApiVersion"
